@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Form Kunjungan Lapangan | Field Visit Tracking</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet.js CSS for Interactive Pinning -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.05); }
+        }
+        .animate-pulse-slow {
+            animation: pulse-slow 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 antialiased selection:bg-brand-500 selection:text-white pb-10">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-xs">
+        <div class="max-w-xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold text-slate-900 leading-tight">Field Visit</h1>
+                    <p class="text-xs font-medium text-slate-500">Tracking & Mapping</p>
+                </div>
+            </div>
+
+            <a href="{{ route('visits.index') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition">
+                <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+                </svg>
+                <span>Lihat Peta</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-xl mx-auto px-4 pt-5">
+
+        <!-- Flash Messages (Session) -->
+        @if(session('success'))
+            <div id="flash-success" class="mb-5 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-start gap-3 shadow-xs">
+                <svg class="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <div class="text-sm">
+                    <p class="font-semibold">{{ session('success') }}</p>
+                    <a href="{{ route('visits.index') }}" class="mt-1 inline-block text-xs font-bold text-emerald-700 underline hover:text-emerald-900">
+                        Buka Dashboard Peta &rarr;
+                    </a>
+                </div>
+            </div>
+        @endif
+
+        @if($errors->any())
+            <div class="mb-5 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 shadow-xs">
+                <div class="flex items-center gap-2 font-semibold text-sm text-rose-900 mb-1">
+                    <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span>Mohon periksa kembali form:</span>
+                </div>
+                <ul class="list-disc list-inside text-xs space-y-1 text-rose-700 pl-1">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        <!-- Card Form -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200/90 overflow-hidden">
+            <!-- Header Card Banner -->
+            <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 text-white">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-indigo-200 text-xs font-semibold mb-2 backdrop-blur-xs">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    Presensi Lapangan
+                </div>
+                <h2 class="text-xl font-extrabold text-white tracking-tight">Check-In Lapangan</h2>
+                <p class="text-xs text-slate-300 mt-1">Lengkapi nama petugas, swafoto kehadiran, dan verifikasi titik koordinat kunjungan.</p>
+            </div>
+
+            <!-- The Form -->
+            <form id="visitForm" action="{{ route('visits.store') }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-5">
+                @csrf
+
+                <!-- Hidden Latitude and Longitude -->
+                <input type="hidden" name="latitude" id="latitudeInput" value="{{ old('latitude') }}">
+                <input type="hidden" name="longitude" id="longitudeInput" value="{{ old('longitude') }}">
+
+                <!-- Input: Nama Petugas (Custom Modern Combobox) -->
+                <div>
+                    <label for="visitor_name" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                        Nama Petugas <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="relative" id="officerComboboxContainer">
+                        <div class="relative rounded-xl shadow-2xs">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                            </div>
+                            <input type="text"
+                                   name="visitor_name"
+                                   id="visitor_name"
+                                   required
+                                   placeholder="Ketik atau pilih nama petugas..."
+                                   value="{{ old('visitor_name') }}"
+                                   autocomplete="off"
+                                   class="block w-full pl-11 pr-10 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                            
+                            <button type="button"
+                                    id="officerDropdownToggle"
+                                    onclick="toggleOfficerDropdown()"
+                                    tabindex="-1"
+                                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition cursor-pointer">
+                                <svg id="officerChevronIcon" class="w-4 h-4 transition duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- Custom Styled Officers Dropdown Card -->
+                        <div id="officerDropdownMenu"
+                             class="hidden absolute left-0 right-0 z-30 mt-1.5 bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
+                            <div id="officersList" class="max-h-56 overflow-y-auto p-1.5 space-y-0.5">
+                                @forelse($officers ?? [] as $officer)
+                                    <div class="officer-option flex items-center justify-between px-3 py-2 rounded-xl hover:bg-brand-50/70 cursor-pointer text-xs transition group"
+                                         data-name="{{ strtolower($officer) }}"
+                                         data-raw="{{ $officer }}"
+                                         onclick="selectOfficer('{{ addslashes($officer) }}')">
+                                        <div class="flex items-center gap-2.5 min-w-0">
+                                            <div class="w-7 h-7 rounded-lg bg-brand-100 text-brand-700 font-bold flex items-center justify-center shrink-0 text-xs">
+                                                {{ strtoupper(substr($officer, 0, 1)) }}
+                                            </div>
+                                            <span class="font-semibold text-slate-800 group-hover:text-brand-700 truncate">
+                                                {{ $officer }}
+                                            </span>
+                                        </div>
+                                        <span class="text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition">
+                                            Pilih &crarr;
+                                        </span>
+                                    </div>
+                                @empty
+                                    <div class="p-3 text-center text-xs text-slate-400">
+                                        Belum ada data petugas tersimpan. Ketik nama untuk mendaftar baru.
+                                    </div>
+                                @endforelse
+                            </div>
+
+                            <div id="newOfficerNotice" class="hidden p-2.5 bg-slate-50 text-xs border-t border-slate-100">
+                                <div class="flex items-center gap-2 text-slate-600">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                    <span>Nama baru: <strong id="newOfficerNameText" class="text-brand-600 font-bold"></strong></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input: Keterangan Kegiatan -->
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label for="notes" class="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                            Keterangan Kegiatan
+                        </label>
+                        <span id="charCount" class="text-[10px] text-slate-400 font-medium">0/500</span>
+                    </div>
+                    <div class="relative rounded-xl shadow-2xs">
+                        <textarea name="notes"
+                                  id="notes"
+                                  rows="3"
+                                  maxlength="500"
+                                  oninput="document.getElementById('charCount').textContent = this.value.length + '/500'"
+                                  placeholder="Catatan temuan atau tujuan kegiatan kunjungan di lapangan..."
+                                  class="block w-full p-3 rounded-xl border border-slate-300 text-slate-900 placeholder:text-slate-400 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition resize-none">{{ old('notes') }}</textarea>
+                    </div>
+                </div>
+
+                <!-- Input: Foto Kamera Selfie -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                        Foto Bukti Lapangan <span class="text-rose-500">*</span>
+                    </label>
+
+                    <!-- Hidden native file input with capture="user" -->
+                    <input type="file"
+                           name="photo"
+                           id="photoInput"
+                           accept="image/*"
+                           capture="user"
+                           class="hidden"
+                           required>
+
+                    <!-- Custom Camera Upload Dropzone / Button -->
+                    <div id="dropzoneArea"
+                         onclick="document.getElementById('photoInput').click()"
+                         class="cursor-pointer border-2 border-dashed border-slate-300 hover:border-brand-500 bg-slate-50/70 hover:bg-brand-50/30 rounded-2xl p-6 text-center transition flex flex-col items-center justify-center group">
+                        
+                        <div class="w-14 h-14 rounded-full bg-white shadow-xs border border-slate-200 flex items-center justify-center text-brand-600 group-hover:scale-105 group-hover:bg-brand-600 group-hover:text-white transition duration-200 mb-3">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                        </div>
+
+                        <p class="text-sm font-bold text-slate-800">
+                            Ambil Swafoto / Pilih Foto
+                        </p>
+                        <p class="text-xs text-slate-500 mt-1 max-w-xs">
+                            Ketuk untuk membuka kamera atau memilih foto dari galeri perangkat Anda.
+                        </p>
+                    </div>
+
+                    <!-- Image Preview Box (Clean & Professional) -->
+                    <div id="previewCard" class="hidden mt-3 bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-3">
+                        <div class="relative rounded-xl overflow-hidden bg-black/5 aspect-4/3 flex items-center justify-center border border-slate-200">
+                            <img id="previewImage" src="" alt="Preview Foto Lapangan" class="w-full h-full object-cover">
+                            <button type="button"
+                                    onclick="document.getElementById('photoInput').click()"
+                                    class="absolute bottom-2.5 right-2.5 bg-slate-900/85 hover:bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl backdrop-blur-sm shadow flex items-center gap-1.5 transition">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                </svg>
+                                Ganti Foto
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GPS Location Section -->
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                            Titik Lokasi GPS <span class="text-rose-500">*</span>
+                        </label>
+                        <button type="button"
+                                onclick="fetchCurrentLocation()"
+                                class="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-lg transition">
+                            <svg id="refreshGpsIcon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            <span>Perbarui GPS</span>
+                        </button>
+                    </div>
+
+                    <!-- GPS Status Card -->
+                    <div id="gpsCard" class="bg-slate-50 border border-slate-200 rounded-2xl p-4 transition">
+                        <!-- Searching State -->
+                        <div id="gpsSearching" class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                                <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-bold text-slate-800">Mendeteksi Titik GPS...</p>
+                                <p class="text-xs text-slate-500">Mohon izinkan akses lokasi di browser perangkat Anda.</p>
+                            </div>
+                        </div>
+
+                        <!-- Success State (Locked) -->
+                        <div id="gpsSuccess" class="hidden">
+                            <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+                                <div class="flex items-center gap-2">
+                                    <span class="relative flex h-3 w-3">
+                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                                    </span>
+                                    <span class="text-xs font-bold text-emerald-800">Lokasi GPS Terverifikasi</span>
+                                </div>
+                                <span id="gpsAccuracy" class="text-[11px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                                    Akurasi ± 5m
+                                </span>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2 pt-3">
+                                <div class="bg-white p-2.5 rounded-xl border border-slate-200">
+                                    <span class="text-[10px] uppercase font-bold text-slate-400 block">Latitude</span>
+                                    <span id="displayLat" class="text-xs font-mono font-bold text-slate-800">-</span>
+                                </div>
+                                <div class="bg-white p-2.5 rounded-xl border border-slate-200">
+                                    <span class="text-[10px] uppercase font-bold text-slate-400 block">Longitude</span>
+                                    <span id="displayLng" class="text-xs font-mono font-bold text-slate-800">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Error State -->
+                        <div id="gpsError" class="hidden flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                            </div>
+                            <div class="text-xs">
+                                <p class="font-bold text-rose-800 text-sm">Gagal Mengakses GPS</p>
+                                <p id="gpsErrorMessage" class="text-rose-600 mt-0.5">Akses lokasi tidak tersedia. Anda dapat menentukan titik manual menggunakan peta di bawah.</p>
+                                <button type="button"
+                                        onclick="fetchCurrentLocation()"
+                                        class="mt-2 text-xs font-bold text-rose-700 underline hover:text-rose-900">
+                                    Coba Deteksi Ulang &rarr;
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Mini-Map for Verifying & Pinpointing Location -->
+                    <div class="mt-3.5 bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+                        <div class="p-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                            <div class="flex items-center gap-1.5">
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span class="text-xs font-bold text-slate-800">Peta Verifikasi Lokasi</span>
+                            </div>
+                        </div>
+
+                        <!-- Quick Search Bar for Office/Street/Place in Indonesia -->
+                        <div class="p-2.5 border-b border-slate-100 bg-white flex gap-1.5">
+                            <div class="relative flex-1">
+                                <input type="text"
+                                       id="mapSearchInput"
+                                       placeholder="Cari nama kantor / jalan / tempat (cth: Balai Kota Surabaya)..."
+                                       onkeydown="if(event.key === 'Enter'){ event.preventDefault(); searchLocationOnMap(); }"
+                                       class="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                </svg>
+                            </div>
+                            <button type="button"
+                                    id="mapSearchBtn"
+                                    onclick="searchLocationOnMap()"
+                                    class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shrink-0 cursor-pointer shadow-xs">
+                                <span id="mapSearchText">Cari</span>
+                            </button>
+                        </div>
+
+                        <!-- Leaflet Map Container -->
+                        <div id="miniMap" class="w-full h-64 z-10 bg-slate-100"></div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-2">
+                    <button type="submit"
+                            id="submitBtn"
+                            class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 active:scale-[0.99] text-white font-bold text-sm shadow-lg shadow-brand-500/30 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                        <svg id="submitIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span id="submitText">Simpan Kunjungan Lapangan</span>
+                    </button>
+                    <p class="text-[11px] text-center text-slate-400 mt-2">
+                        Data dan foto akan disimpan aman ke PostgreSQL & Supabase Storage
+                    </p>
+                </div>
+            </form>
+        </div>
+
+    </main>
+
+    <!-- Success Modal Popup -->
+    <div id="successModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl border border-slate-100 transform transition-all scale-95 opacity-0 duration-200" id="successModalBox">
+            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                </svg>
+            </div>
+            <h3 class="text-lg font-extrabold text-slate-900">Kunjungan Berhasil Disimpan!</h3>
+            <p id="successModalMessage" class="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                Foto selfie telah diunggah ke Supabase Storage dan titik koordinat GPS telah tersimpan.
+            </p>
+            <div class="mt-6 space-y-2.5">
+                <a href="{{ route('visits.index') }}" class="w-full py-3 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition flex items-center justify-center gap-2 shadow-md shadow-brand-500/20">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+                    </svg>
+                    Lihat di Dashboard Peta
+                </a>
+                <button type="button" onclick="resetFormAndCloseModal()" class="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition">
+                    + Input Kunjungan Lainnya
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet.js CDN -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- JavaScript: GPS Location, Leaflet Mini-Map & HTML5 Canvas Image Compression -->
+    <script>
+        // State
+        let compressedPhotoFile = null;
+        let isGpsLocked = false;
+        let miniMap = null;
+        let miniMarker = null;
+
+        // Batas Wilayah Negara Kesatuan Republik Indonesia (NKRI)
+        const indonesiaBounds = L.latLngBounds(
+            L.latLng(-11.5, 94.5), // Barat Daya
+            L.latLng(6.5, 141.5)   // Timur Laut
+        );
+
+        // Elements
+        const visitForm = document.getElementById('visitForm');
+        const photoInput = document.getElementById('photoInput');
+        const dropzoneArea = document.getElementById('dropzoneArea');
+        const previewCard = document.getElementById('previewCard');
+        const previewImage = document.getElementById('previewImage');
+        const statOriginalSize = document.getElementById('statOriginalSize');
+        const statCompressedSize = document.getElementById('statCompressedSize');
+        const statSavingsPercent = document.getElementById('statSavingsPercent');
+
+        // Officers Custom Combobox
+        const visitorNameInput = document.getElementById('visitor_name');
+        const officerDropdownMenu = document.getElementById('officerDropdownMenu');
+        const officerChevronIcon = document.getElementById('officerChevronIcon');
+        const officerComboboxContainer = document.getElementById('officerComboboxContainer');
+        const officerOptions = document.querySelectorAll('.officer-option');
+
+        function toggleOfficerDropdown(forceState) {
+            if (!officerDropdownMenu) return;
+            const isClosed = officerDropdownMenu.classList.contains('hidden');
+            const shouldOpen = forceState !== undefined ? forceState : isClosed;
+
+            if (shouldOpen) {
+                filterOfficerOptions(visitorNameInput.value);
+                officerDropdownMenu.classList.remove('hidden');
+                if (officerChevronIcon) officerChevronIcon.classList.add('rotate-180');
+            } else {
+                officerDropdownMenu.classList.add('hidden');
+                if (officerChevronIcon) officerChevronIcon.classList.remove('rotate-180');
+            }
+        }
+
+        function filterOfficerOptions(query) {
+            const q = (query || '').toLowerCase().trim();
+            let matches = 0;
+
+            officerOptions.forEach(opt => {
+                const name = opt.getAttribute('data-name');
+                if (!q || name.includes(q)) {
+                    opt.classList.remove('hidden');
+                    matches++;
+                } else {
+                    opt.classList.add('hidden');
+                }
+            });
+
+            const newNotice = document.getElementById('newOfficerNotice');
+            const newNameText = document.getElementById('newOfficerNameText');
+            if (newNotice && newNameText) {
+                if (q && matches === 0) {
+                    newNameText.textContent = query;
+                    newNotice.classList.remove('hidden');
+                } else {
+                    newNotice.classList.add('hidden');
+                }
+            }
+        }
+
+        function selectOfficer(name) {
+            if (visitorNameInput) {
+                visitorNameInput.value = name;
+            }
+            toggleOfficerDropdown(false);
+            const notesEl = document.getElementById('notes');
+            if (notesEl) notesEl.focus();
+        }
+
+        if (visitorNameInput) {
+            visitorNameInput.addEventListener('focus', () => {
+                toggleOfficerDropdown(true);
+            });
+            visitorNameInput.addEventListener('input', (e) => {
+                filterOfficerOptions(e.target.value);
+                toggleOfficerDropdown(true);
+            });
+            visitorNameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    toggleOfficerDropdown(false);
+                } else if (e.key === 'Enter') {
+                    const firstVisible = Array.from(officerOptions).find(o => !o.classList.contains('hidden'));
+                    if (firstVisible && !officerDropdownMenu.classList.contains('hidden')) {
+                        e.preventDefault();
+                        selectOfficer(firstVisible.getAttribute('data-raw'));
+                    }
+                }
+            });
+        }
+
+        document.addEventListener('click', (e) => {
+            if (officerComboboxContainer && !officerComboboxContainer.contains(e.target)) {
+                toggleOfficerDropdown(false);
+            }
+        });
+
+        const latitudeInput = document.getElementById('latitudeInput');
+        const longitudeInput = document.getElementById('longitudeInput');
+        const displayLat = document.getElementById('displayLat');
+        const displayLng = document.getElementById('displayLng');
+        const gpsAccuracy = document.getElementById('gpsAccuracy');
+        const gpsSearching = document.getElementById('gpsSearching');
+        const gpsSuccess = document.getElementById('gpsSuccess');
+        const gpsError = document.getElementById('gpsError');
+        const gpsErrorMessage = document.getElementById('gpsErrorMessage');
+        const refreshGpsIcon = document.getElementById('refreshGpsIcon');
+
+        const submitBtn = document.getElementById('submitBtn');
+        const submitIcon = document.getElementById('submitIcon');
+        const submitText = document.getElementById('submitText');
+
+        const successModal = document.getElementById('successModal');
+        const successModalBox = document.getElementById('successModalBox');
+
+        // Helper: Format Bytes to KB/MB
+        function formatBytes(bytes, decimals = 1) {
+            if (!+bytes) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+        }
+
+        // 1. Inisialisasi Mini-Map Interaktif
+        function initMiniMap() {
+            if (miniMap) return;
+
+            // Default center: jika sudah ada nilai koordinat, gunakan itu. Jika belum, titik tengah Indonesia
+            const hasInitialCoords = latitudeInput.value && longitudeInput.value;
+            const initialLat = hasInitialCoords ? parseFloat(latitudeInput.value) : -2.5489;
+            const initialLng = hasInitialCoords ? parseFloat(longitudeInput.value) : 118.0149;
+            const initialZoom = hasInitialCoords ? 16 : 5;
+
+            miniMap = L.map('miniMap', {
+                maxBounds: indonesiaBounds,
+                maxBoundsViscosity: 1.0,
+                minZoom: 4,
+                maxZoom: 19
+            }).setView([initialLat, initialLng], initialZoom);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                bounds: indonesiaBounds,
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(miniMap);
+
+            const redPin = L.divIcon({
+                className: 'custom-pin-marker',
+                iconSize: [36, 44],
+                iconAnchor: [18, 42],
+                popupAnchor: [0, -40],
+                html: `
+                    <div style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));">
+                        <svg width="36" height="44" viewBox="0 0 44 52" fill="none">
+                            <path d="M22 0C9.84974 0 0 9.84974 0 22C0 35.5 19.5 50.5 21.1 51.7C21.6 52.1 22.4 52.1 22.9 51.7C24.5 50.5 44 35.5 44 22C44 9.84974 34.1503 0 22 0Z" fill="#DC2626"/>
+                            <circle cx="22" cy="20" r="10" fill="white"/>
+                        </svg>
+                    </div>
+                `
+            });
+
+            miniMarker = L.marker([initialLat, initialLng], {
+                icon: redPin,
+                draggable: true
+            }).addTo(miniMap);
+
+            miniMarker.bindPopup('<b>Titik Lokasi Kunjungan</b>');
+
+            // Saat pin digeser
+            miniMarker.on('dragend', function (e) {
+                const pos = e.target.getLatLng();
+                updateCoordinates(pos.lat, pos.lng);
+            });
+
+            // Saat peta diklik langsung
+            miniMap.on('click', function (e) {
+                miniMarker.setLatLng(e.latlng);
+                updateCoordinates(e.latlng.lat, e.latlng.lng);
+            });
+        }
+
+        // Helper untuk update koordinat ke input form dan tampilan UI
+        function updateCoordinates(lat, lng, labelAccuracy) {
+            latitudeInput.value = lat;
+            longitudeInput.value = lng;
+            displayLat.textContent = Number(lat).toFixed(6);
+            displayLng.textContent = Number(lng).toFixed(6);
+
+            if (labelAccuracy) {
+                gpsAccuracy.textContent = labelAccuracy;
+            }
+
+            isGpsLocked = true;
+            gpsSearching.classList.add('hidden');
+            gpsError.classList.add('hidden');
+            gpsSuccess.classList.remove('hidden');
+        }
+
+        // 2. Pencarian Alamat / Tempat di Indonesia
+        async function searchLocationOnMap() {
+            const query = document.getElementById('mapSearchInput').value.trim();
+            if (!query) return;
+
+            const btn = document.getElementById('mapSearchBtn');
+            const txt = document.getElementById('mapSearchText');
+            txt.textContent = 'Mencari...';
+            btn.disabled = true;
+
+            try {
+                // Query Nominatim OpenStreetMap dibatasi khusus negara Indonesia (countrycodes=id)
+                const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=id&limit=1&q=${encodeURIComponent(query)}`;
+                const response = await fetch(url);
+                const results = await response.json();
+
+                if (results && results.length > 0) {
+                    const lat = parseFloat(results[0].lat);
+                    const lon = parseFloat(results[0].lon);
+
+                    if (miniMap && miniMarker) {
+                        miniMarker.setLatLng([lat, lon]);
+                        miniMap.setView([lat, lon], 17);
+                        miniMarker.openPopup();
+                    }
+
+                    const shortName = results[0].display_name.split(',')[0];
+                    updateCoordinates(lat, lon, `Pencarian: ${shortName}`);
+                } else {
+                    alert('Lokasi tidak ditemukan di Indonesia. Coba ketik nama gedung, jalan, atau kelurahan/kecamatan yang lebih spesifik.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Pencarian sedang sibuk. Silakan geser pin merah secara manual pada peta.');
+            } finally {
+                txt.textContent = 'Cari';
+                btn.disabled = false;
+            }
+        }
+
+        // 3. Geolocation Browser Handler
+        function fetchCurrentLocation() {
+            gpsSearching.classList.remove('hidden');
+            gpsSuccess.classList.add('hidden');
+            gpsError.classList.add('hidden');
+            refreshGpsIcon.classList.add('animate-spin');
+
+            if (!navigator.geolocation) {
+                showGpsError('Browser tidak mendukung geolokasi GPS.');
+                return;
+            }
+
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 0
+            };
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    const acc = Math.round(position.coords.accuracy);
+
+                    // Beri label pembeda jika di laptop (akurasi biasanya > 100 meter)
+                    const label = acc > 150 ? `IP/Wi-Fi (± ${acc}m)` : `GPS (± ${acc}m)`;
+                    updateCoordinates(lat, lng, label);
+
+                    if (miniMap && miniMarker) {
+                        miniMarker.setLatLng([lat, lng]);
+                        miniMap.setView([lat, lng], 16);
+                        miniMarker.openPopup();
+                    }
+
+                    refreshGpsIcon.classList.remove('animate-spin');
+                },
+                (error) => {
+                    refreshGpsIcon.classList.remove('animate-spin');
+                    let message = 'Gagal mendeteksi lokasi.';
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            message = 'Izin lokasi browser ditolak. Anda tetap bisa menentukan lokasi dengan menggeser pin di peta.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            message = 'Sinyal lokasi tidak tersedia. Silakan geser pin pada peta.';
+                            break;
+                        case error.TIMEOUT:
+                            message = 'Waktu deteksi GPS habis. Silakan geser pin pada peta.';
+                            break;
+                    }
+                    showGpsError(message);
+                },
+                options
+            );
+        }
+
+        function showGpsError(msg) {
+            gpsSearching.classList.add('hidden');
+            gpsSuccess.classList.add('hidden');
+            gpsError.classList.remove('hidden');
+            gpsErrorMessage.textContent = msg;
+            refreshGpsIcon.classList.remove('animate-spin');
+            isGpsLocked = false;
+        }
+
+        // Run on Load
+        document.addEventListener('DOMContentLoaded', () => {
+            initMiniMap();
+            fetchCurrentLocation();
+
+            // Refresh layout Leaflet setelah DOM selesai dirender
+            setTimeout(() => {
+                if (miniMap) {
+                    miniMap.invalidateSize();
+                }
+            }, 300);
+        });
+
+        // 2. Client-Side Image Compression with HTML5 Canvas (max 1000px, quality 0.8)
+        photoInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Validate is image
+            if (!file.type.startsWith('image/')) {
+                alert('File yang dipilih harus berupa gambar.');
+                return;
+            }
+
+            try {
+                // Show loading state
+                dropzoneArea.classList.add('opacity-50', 'pointer-events-none');
+                
+                const compressionResult = await compressImage(file, 1000, 1000, 0.8);
+                compressedPhotoFile = compressionResult.compressedFile;
+
+                // Sync compressed file into input.files via DataTransfer for standard form submit
+                if (window.DataTransfer) {
+                    const dt = new DataTransfer();
+                    dt.items.add(compressedPhotoFile);
+                    photoInput.files = dt.files;
+                }
+
+                // Update UI preview
+                previewImage.src = compressionResult.previewUrl;
+                if (statOriginalSize) statOriginalSize.textContent = formatBytes(compressionResult.originalSize);
+                if (statCompressedSize) statCompressedSize.textContent = `${formatBytes(compressionResult.compressedSize)} (${compressionResult.width}x${compressionResult.height}px)`;
+                if (statSavingsPercent) {
+                    const savings = Math.max(0, Math.round(((compressionResult.originalSize - compressionResult.compressedSize) / compressionResult.originalSize) * 100));
+                    statSavingsPercent.textContent = `Hemat ${savings}%`;
+                }
+
+                dropzoneArea.classList.add('hidden');
+                previewCard.classList.remove('hidden');
+            } catch (err) {
+                console.error('Image compression error:', err);
+                alert('Gagal mengompresi gambar. Silakan coba lagi.');
+            } finally {
+                dropzoneArea.classList.remove('opacity-50', 'pointer-events-none');
+            }
+        });
+
+        function compressImage(file, maxWidth = 1000, maxHeight = 1000, quality = 0.8) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        let width = img.width;
+                        let height = img.height;
+
+                        // Calculate aspect ratio scaling
+                        if (width > maxWidth || height > maxHeight) {
+                            if (width / maxWidth > height / maxHeight) {
+                                height = Math.round((height * maxWidth) / width);
+                                width = maxWidth;
+                            } else {
+                                width = Math.round((width * maxHeight) / height);
+                                height = maxHeight;
+                            }
+                        }
+
+                        // Offscreen HTML5 Canvas
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+
+                        // Clean drawing
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        // Export to Blob
+                        canvas.toBlob((blob) => {
+                            if (!blob) {
+                                reject(new Error('Canvas toBlob failed'));
+                                return;
+                            }
+
+                            const safeName = (file.name || 'selfie.jpg').replace(/\.[^/.]+$/, "") + ".jpg";
+                            const compressedFile = new File([blob], safeName, {
+                                type: 'image/jpeg',
+                                lastModified: Date.now()
+                            });
+
+                            resolve({
+                                compressedFile,
+                                previewUrl: canvas.toDataURL('image/jpeg', quality),
+                                width,
+                                height,
+                                originalSize: file.size,
+                                compressedSize: compressedFile.size
+                            });
+                        }, 'image/jpeg', quality);
+                    };
+                    img.onerror = reject;
+                };
+                reader.onerror = reject;
+            });
+        }
+
+        // 3. Form Submit with AJAX & Safety Check
+        visitForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Validate GPS
+            if (!latitudeInput.value || !longitudeInput.value) {
+                alert('Titik GPS belum terdeteksi. Silakan klik tombol "Perbarui GPS" atau izinkan browser membaca lokasi Anda.');
+                fetchCurrentLocation();
+                return;
+            }
+
+            // Validate photo
+            if (!compressedPhotoFile && (!photoInput.files || !photoInput.files.length)) {
+                alert('Silakan ambil foto bukti kunjungan lapangan terlebih dahulu.');
+                document.getElementById('photoInput').click();
+                return;
+            }
+
+            // Prepare FormData
+            const formData = new FormData(visitForm);
+            if (compressedPhotoFile) {
+                formData.set('photo', compressedPhotoFile, compressedPhotoFile.name);
+            }
+
+            // Disable submit button & show loading state
+            setSubmittingState(true);
+
+            try {
+                const response = await fetch(visitForm.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Show success modal
+                    showSuccessModal(data.message);
+                } else {
+                    const errorMsg = data.message || 'Terjadi kesalahan saat menyimpan data.';
+                    alert(errorMsg);
+                }
+            } catch (error) {
+                console.error('Submission error:', error);
+                // Fallback to normal form submit if fetch fails
+                visitForm.submit();
+                return;
+            } finally {
+                setSubmittingState(false);
+            }
+        });
+
+        function setSubmittingState(isSubmitting) {
+            submitBtn.disabled = isSubmitting;
+            if (isSubmitting) {
+                submitIcon.innerHTML = `<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>`;
+                submitIcon.classList.add('animate-spin');
+                submitText.textContent = 'Mengunggah Data & Foto...';
+            } else {
+                submitIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>`;
+                submitIcon.classList.remove('animate-spin');
+                submitText.textContent = 'Simpan Kunjungan Lapangan';
+            }
+        }
+
+        function showSuccessModal(msg) {
+            if (msg) {
+                document.getElementById('successModalMessage').textContent = msg;
+            }
+            successModal.classList.remove('hidden');
+            setTimeout(() => {
+                successModalBox.classList.remove('scale-95', 'opacity-0');
+                successModalBox.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function resetFormAndCloseModal() {
+            successModalBox.classList.remove('scale-100', 'opacity-100');
+            successModalBox.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                successModal.classList.add('hidden');
+                visitForm.reset();
+                compressedPhotoFile = null;
+                previewCard.classList.add('hidden');
+                dropzoneArea.classList.remove('hidden');
+                fetchCurrentLocation();
+            }, 200);
+        }
+    </script>
+</body>
+</html>
