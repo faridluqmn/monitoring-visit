@@ -22,12 +22,12 @@ class VisitController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        $officers = Visit::query()
-            ->whereNotNull('visitor_name')
-            ->where('visitor_name', '!=', '')
-            ->distinct()
-            ->orderBy('visitor_name')
-            ->pluck('visitor_name');
+        $officers = $visits
+            ->pluck('visitor_name')
+            ->filter(fn ($name) => ! empty($name))
+            ->unique()
+            ->sort()
+            ->values();
 
         return view('visit.index', [
             'visits' => $visits,
