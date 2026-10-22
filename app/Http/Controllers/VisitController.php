@@ -118,7 +118,7 @@ class VisitController extends Controller
         }
 
         $visit = Visit::create([
-            'visitor_name' => $validated['visitor_name'],
+            'visitor_name' => trim($validated['visitor_name']),
             'notes' => $validated['notes'] ?? null,
             'latitude' => $validated['latitude'],
             'longitude' => $validated['longitude'],

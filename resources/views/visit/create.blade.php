@@ -133,11 +133,8 @@
                 <input type="hidden" name="longitude" id="longitudeInput" value="{{ old('longitude') }}">
 
                 @php
-                    // Pastikan daftar nama petugas unik dan rapi, jika kosong siapkan nama default agar tampilan langsung menarik
-                    $allOfficers = ($officers ?? collect())->filter()->unique()->values();
-                    if ($allOfficers->isEmpty()) {
-                        $allOfficers = collect(['Farid', 'Dafa', 'Fira']);
-                    }
+                    // Murni ambil dari database tanpa fallback data dummy
+                    $allOfficers = ($officers ?? collect())->filter(fn($n) => filled($n))->unique()->values();
                 @endphp
 
                 <!-- Input: Nama Petugas (Modern Custom Mobile UI) -->
@@ -208,11 +205,11 @@
                                     </svg>
                                     <span>Pilih Petugas Tersimpan</span>
                                 </span>
-                                <span class="text-[10px] text-slate-400">{{ count($allOfficers) }} Terdaftar</span>
+                                <span id="officersCountBadge" class="text-[10px] text-slate-400">{{ count($allOfficers) }} Terdaftar</span>
                             </div>
 
                             <div id="officersList" class="max-h-56 overflow-y-auto p-1.5 space-y-1">
-                                @foreach($allOfficers as $officer)
+                                @forelse($allOfficers as $officer)
                                     <div class="officer-option flex items-center justify-between p-2 rounded-xl hover:bg-brand-50/80 cursor-pointer text-xs transition group"
                                          data-name="{{ strtolower($officer) }}"
                                          data-raw="{{ $officer }}"
@@ -232,7 +229,15 @@
                                             Pilih &rarr;
                                         </span>
                                     </div>
-                                @endforeach
+                                @empty
+                                    <div class="p-4 text-center text-xs text-slate-400" id="emptyOfficersPlaceholder">
+                                        <svg class="w-8 h-8 mx-auto text-slate-300 mb-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                        </svg>
+                                        <p class="font-semibold text-slate-600">Belum Ada Petugas Tersimpan</p>
+                                        <p class="text-[11px] text-slate-400 mt-0.5">Ketik nama petugas di kolom input di atas. Setelah kunjungan disimpan, nama Anda akan otomatis terekap pada daftar ini.</p>
+                                    </div>
+                                @endforelse
                             </div>
 
                             <div id="newOfficerNotice" class="hidden p-3 bg-brand-50/60 text-xs border-t border-brand-100">
@@ -264,9 +269,6 @@
 
                     <!-- Quick Activity Presets for Mobile -->
                     <div class="mb-2 flex flex-wrap gap-1.5">
-                        <button type="button" onclick="appendNote('Magang')" class="preset-note-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-brand-50 text-slate-600 hover:text-brand-700 border border-slate-200/80 transition active:scale-95 cursor-pointer">
-                            🏢 Magang
-                        </button>
                         <button type="button" onclick="appendNote('Kunjungan Rutin')" class="preset-note-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-brand-50 text-slate-600 hover:text-brand-700 border border-slate-200/80 transition active:scale-95 cursor-pointer">
                             📋 Kunjungan Rutin
                         </button>
@@ -555,7 +557,7 @@
         const officerDropdownMenu = document.getElementById('officerDropdownMenu');
         const officerChevronIcon = document.getElementById('officerChevronIcon');
         const officerComboboxContainer = document.getElementById('officerComboboxContainer');
-        const officerOptions = document.querySelectorAll('.officer-option');
+        let officerOptions = document.querySelectorAll('.officer-option');
         const officerAvatarBadge = document.getElementById('officerAvatarBadge');
         const clearOfficerBtn = document.getElementById('clearOfficerBtn');
 
@@ -603,6 +605,12 @@
                 }
             });
 
+            const emptyEl = document.getElementById('emptyOfficersPlaceholder');
+            if (emptyEl) {
+                if (q) emptyEl.classList.add('hidden');
+                else emptyEl.classList.remove('hidden');
+            }
+
             const newNotice = document.getElementById('newOfficerNotice');
             const newNameText = document.getElementById('newOfficerNameText');
             if (newNotice && newNameText) {
@@ -628,6 +636,61 @@
                 visitorNameInput.value = '';
                 updateOfficerUI('');
                 visitorNameInput.focus();
+            }
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function registerOfficerInList(name) {
+            if (!name) return;
+            const trimmed = name.trim();
+            if (!trimmed) return;
+            const lower = trimmed.toLowerCase();
+            const existing = Array.from(document.querySelectorAll('.officer-option')).find(
+                opt => opt.getAttribute('data-name') === lower
+            );
+            if (!existing) {
+                const emptyEl = document.getElementById('emptyOfficersPlaceholder');
+                if (emptyEl) {
+                    emptyEl.remove();
+                }
+
+                const officersList = document.getElementById('officersList');
+                if (officersList) {
+                    const initialLetter = trimmed.charAt(0).toUpperCase();
+                    const optionDiv = document.createElement('div');
+                    optionDiv.className = 'officer-option flex items-center justify-between p-2 rounded-xl hover:bg-brand-50/80 cursor-pointer text-xs transition group';
+                    optionDiv.setAttribute('data-name', lower);
+                    optionDiv.setAttribute('data-raw', trimmed);
+                    optionDiv.onclick = () => selectOfficer(trimmed);
+                    optionDiv.innerHTML = `
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 text-white font-extrabold flex items-center justify-center shrink-0 text-xs shadow-2xs">
+                                ${initialLetter}
+                            </div>
+                            <div>
+                                <p class="font-bold text-slate-800 group-hover:text-brand-700 truncate text-xs">
+                                    ${escapeHtml(trimmed)}
+                                </p>
+                                <p class="text-[10px] text-slate-400">Petugas Presensi</p>
+                            </div>
+                        </div>
+                        <span class="text-[10px] font-semibold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-md opacity-0 group-hover:opacity-100 transition">
+                            Pilih &rarr;
+                        </span>
+                    `;
+                    officersList.appendChild(optionDiv);
+                    officerOptions = document.querySelectorAll('.officer-option');
+
+                    const badge = document.getElementById('officersCountBadge');
+                    if (badge) {
+                        badge.textContent = `${officerOptions.length} Terdaftar`;
+                    }
+                }
             }
         }
 
@@ -1064,6 +1127,10 @@
                 const data = await response.json().catch(() => ({}));
 
                 if (response.ok && data.success) {
+                    const submittedOfficer = (formData.get('visitor_name') || '').trim();
+                    if (submittedOfficer) {
+                        registerOfficerInList(submittedOfficer);
+                    }
                     // Show success modal
                     showSuccessModal(data.message);
                 } else {

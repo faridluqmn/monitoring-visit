@@ -311,7 +311,7 @@
                         </div>
 
                         <!-- Options for each officer -->
-                        @foreach($officers as $officer)
+                        @forelse($officers as $officer)
                             @php
                                 $officerVisitCount = $visits->where('visitor_name', $officer)->count();
                             @endphp
@@ -331,7 +331,11 @@
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                                 </span>
                             </div>
-                        @endforeach
+                        @empty
+                            <div class="p-3 text-center text-xs text-slate-400">
+                                Belum ada data petugas tersimpan di database.
+                            </div>
+                        @endforelse
                     </div>
                 </div>
             </div>
