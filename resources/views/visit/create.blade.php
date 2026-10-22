@@ -125,25 +125,73 @@
             </div>
 
             <!-- The Form -->
-            <form id="visitForm" action="{{ route('visits.store') }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-5">
+            <form id="visitForm" action="{{ request()->isSecure() || app()->environment('production') || env('VERCEL') || str_contains(request()->getHost(), 'vercel.app') ? secure_url(route('visits.store', [], false)) : route('visits.store') }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-5">
                 @csrf
 
                 <!-- Hidden Latitude and Longitude -->
                 <input type="hidden" name="latitude" id="latitudeInput" value="{{ old('latitude') }}">
                 <input type="hidden" name="longitude" id="longitudeInput" value="{{ old('longitude') }}">
 
-                <!-- Input: Nama Petugas (Custom Modern Combobox) -->
+                @php
+                    // Pastikan daftar nama petugas unik dan rapi, jika kosong siapkan nama default agar tampilan langsung menarik
+                    $allOfficers = ($officers ?? collect())->filter()->unique()->values();
+                    if ($allOfficers->isEmpty()) {
+                        $allOfficers = collect(['Farid', 'Dafa', 'Fira']);
+                    }
+                @endphp
+
+                <!-- Input: Nama Petugas (Modern Custom Mobile UI) -->
                 <div>
-                    <label for="visitor_name" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                        Nama Petugas <span class="text-rose-500">*</span>
-                    </label>
-                    <div class="relative" id="officerComboboxContainer">
-                        <div class="relative rounded-xl shadow-2xs">
-                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    <div class="flex items-center justify-between mb-2">
+                        <label for="visitor_name" class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-brand-500"></span>
+                            <span>Nama Petugas</span>
+                            <span class="text-rose-500">*</span>
+                        </label>
+                        <span class="text-[10px] font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200/60">
+                            Pilih / Ketik Nama
+                        </span>
+                    </div>
+
+                    <!-- Quick Pick Chips for Mobile (Sentuh Sekali untuk Memilih) -->
+                    <div class="mb-2.5">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-[11px] font-semibold text-slate-500 flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                                 </svg>
+                                <span>Pilih Cepat Petugas:</span>
+                            </span>
+                            <span class="text-[10px] text-slate-400">Ketuk untuk memilih</span>
+                        </div>
+                        <div class="flex flex-wrap gap-1.5" id="quickOfficerChips">
+                            @foreach($allOfficers as $officer)
+                                <button type="button"
+                                        onclick="selectOfficer('{{ addslashes($officer) }}', this)"
+                                        class="officer-quick-chip group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white hover:bg-brand-50 text-slate-700 hover:text-brand-700 border border-slate-200 hover:border-brand-300 shadow-2xs transition-all duration-150 active:scale-95 cursor-pointer"
+                                        data-officer="{{ strtolower($officer) }}">
+                                    <span class="w-5 h-5 rounded-lg bg-gradient-to-tr from-brand-600 to-indigo-500 text-white font-bold text-[10px] flex items-center justify-center shadow-2xs group-hover:scale-105 transition">
+                                        {{ strtoupper(substr($officer, 0, 1)) }}
+                                    </span>
+                                    <span class="chip-name">{{ $officer }}</span>
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <!-- Custom Styled Modern Input Container -->
+                    <div class="relative" id="officerComboboxContainer">
+                        <div class="relative flex items-center bg-white rounded-2xl border-2 border-slate-200 hover:border-brand-300 focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-brand-500/10 transition duration-200 shadow-2xs overflow-hidden">
+                            <!-- Dynamic Avatar Badge -->
+                            <div class="pl-3.5 pr-1.5 flex items-center pointer-events-none shrink-0">
+                                <div id="officerAvatarBadge" class="w-8 h-8 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center text-xs font-extrabold transition">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                    </svg>
+                                </div>
                             </div>
+
+                            <!-- Text Input -->
                             <input type="text"
                                    name="visitor_name"
                                    id="visitor_name"
@@ -151,51 +199,79 @@
                                    placeholder="Ketik atau pilih nama petugas..."
                                    value="{{ old('visitor_name') }}"
                                    autocomplete="off"
-                                   class="block w-full pl-11 pr-10 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
-                            
+                                   class="w-full py-3.5 px-2 bg-transparent text-sm font-semibold text-slate-800 placeholder:text-slate-400 placeholder:font-normal focus:outline-none">
+
+                            <!-- Clear Button -->
+                            <button type="button"
+                                    id="clearOfficerBtn"
+                                    onclick="clearOfficerInput()"
+                                    class="hidden p-1.5 mr-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition"
+                                    title="Hapus nama">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+
+                            <!-- Dropdown Trigger Button -->
                             <button type="button"
                                     id="officerDropdownToggle"
                                     onclick="toggleOfficerDropdown()"
-                                    tabindex="-1"
-                                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition cursor-pointer">
+                                    class="px-3.5 py-3.5 text-xs font-bold text-slate-600 hover:text-brand-600 bg-slate-50 hover:bg-slate-100 border-l border-slate-200 flex items-center gap-1.5 transition cursor-pointer shrink-0">
+                                <span>Daftar</span>
                                 <svg id="officerChevronIcon" class="w-4 h-4 transition duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                                 </svg>
                             </button>
                         </div>
 
-                        <!-- Custom Styled Officers Dropdown Card -->
+                        <!-- Dropdown Menu / Modern Floating Card -->
                         <div id="officerDropdownMenu"
-                             class="hidden absolute left-0 right-0 z-30 mt-1.5 bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
-                            <div id="officersList" class="max-h-56 overflow-y-auto p-1.5 space-y-0.5">
-                                @forelse($officers ?? [] as $officer)
-                                    <div class="officer-option flex items-center justify-between px-3 py-2 rounded-xl hover:bg-brand-50/70 cursor-pointer text-xs transition group"
+                             class="hidden absolute left-0 right-0 z-40 mt-2 bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-150">
+                            <div class="p-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                                <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                    </svg>
+                                    <span>Pilih Petugas Tersimpan</span>
+                                </span>
+                                <span class="text-[10px] text-slate-400">{{ count($allOfficers) }} Terdaftar</span>
+                            </div>
+
+                            <div id="officersList" class="max-h-56 overflow-y-auto p-1.5 space-y-1">
+                                @foreach($allOfficers as $officer)
+                                    <div class="officer-option flex items-center justify-between p-2 rounded-xl hover:bg-brand-50/80 cursor-pointer text-xs transition group"
                                          data-name="{{ strtolower($officer) }}"
                                          data-raw="{{ $officer }}"
                                          onclick="selectOfficer('{{ addslashes($officer) }}')">
                                         <div class="flex items-center gap-2.5 min-w-0">
-                                            <div class="w-7 h-7 rounded-lg bg-brand-100 text-brand-700 font-bold flex items-center justify-center shrink-0 text-xs">
+                                            <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 text-white font-extrabold flex items-center justify-center shrink-0 text-xs shadow-2xs">
                                                 {{ strtoupper(substr($officer, 0, 1)) }}
                                             </div>
-                                            <span class="font-semibold text-slate-800 group-hover:text-brand-700 truncate">
-                                                {{ $officer }}
-                                            </span>
+                                            <div>
+                                                <p class="font-bold text-slate-800 group-hover:text-brand-700 truncate text-xs">
+                                                    {{ $officer }}
+                                                </p>
+                                                <p class="text-[10px] text-slate-400">Petugas Presensi</p>
+                                            </div>
                                         </div>
-                                        <span class="text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition">
-                                            Pilih &crarr;
+                                        <span class="text-[10px] font-semibold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-md opacity-0 group-hover:opacity-100 transition">
+                                            Pilih &rarr;
                                         </span>
                                     </div>
-                                @empty
-                                    <div class="p-3 text-center text-xs text-slate-400">
-                                        Belum ada data petugas tersimpan. Ketik nama untuk mendaftar baru.
-                                    </div>
-                                @endforelse
+                                @endforeach
                             </div>
 
-                            <div id="newOfficerNotice" class="hidden p-2.5 bg-slate-50 text-xs border-t border-slate-100">
-                                <div class="flex items-center gap-2 text-slate-600">
-                                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                    <span>Nama baru: <strong id="newOfficerNameText" class="text-brand-600 font-bold"></strong></span>
+                            <div id="newOfficerNotice" class="hidden p-3 bg-brand-50/60 text-xs border-t border-brand-100">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2 text-slate-700 min-w-0">
+                                        <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                                        <span class="truncate">Gunakan nama baru: <strong id="newOfficerNameText" class="text-brand-700 font-bold"></strong></span>
+                                    </div>
+                                    <button type="button"
+                                            onclick="toggleOfficerDropdown(false)"
+                                            class="text-[11px] font-bold text-brand-600 hover:text-brand-800 shrink-0 ml-2">
+                                        Gunakan &crarr;
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -205,19 +281,37 @@
                 <!-- Input: Keterangan Kegiatan -->
                 <div>
                     <div class="flex items-center justify-between mb-1.5">
-                        <label for="notes" class="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                            Keterangan Kegiatan
+                        <label for="notes" class="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                            <span>Keterangan Kegiatan</span>
                         </label>
                         <span id="charCount" class="text-[10px] text-slate-400 font-medium">0/500</span>
                     </div>
-                    <div class="relative rounded-xl shadow-2xs">
+
+                    <!-- Quick Activity Presets for Mobile -->
+                    <div class="mb-2 flex flex-wrap gap-1.5">
+                        <button type="button" onclick="appendNote('Magang')" class="preset-note-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-brand-50 text-slate-600 hover:text-brand-700 border border-slate-200/80 transition active:scale-95 cursor-pointer">
+                            🏢 Magang
+                        </button>
+                        <button type="button" onclick="appendNote('Kunjungan Rutin')" class="preset-note-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-brand-50 text-slate-600 hover:text-brand-700 border border-slate-200/80 transition active:scale-95 cursor-pointer">
+                            📋 Kunjungan Rutin
+                        </button>
+                        <button type="button" onclick="appendNote('Verifikasi Lapangan')" class="preset-note-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-brand-50 text-slate-600 hover:text-brand-700 border border-slate-200/80 transition active:scale-95 cursor-pointer">
+                            🔍 Verifikasi Lapangan
+                        </button>
+                        <button type="button" onclick="appendNote('Monitoring Titik')" class="preset-note-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-brand-50 text-slate-600 hover:text-brand-700 border border-slate-200/80 transition active:scale-95 cursor-pointer">
+                            📍 Monitoring Titik
+                        </button>
+                    </div>
+
+                    <div class="relative rounded-2xl border-2 border-slate-200 hover:border-brand-300 focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-brand-500/10 transition duration-200 shadow-2xs overflow-hidden bg-white">
                         <textarea name="notes"
                                   id="notes"
                                   rows="3"
                                   maxlength="500"
                                   oninput="document.getElementById('charCount').textContent = this.value.length + '/500'"
                                   placeholder="Catatan temuan atau tujuan kegiatan kunjungan di lapangan..."
-                                  class="block w-full p-3 rounded-xl border border-slate-300 text-slate-900 placeholder:text-slate-400 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition resize-none">{{ old('notes') }}</textarea>
+                                  class="block w-full p-3.5 bg-transparent text-slate-900 placeholder:text-slate-400 text-xs font-medium focus:outline-none resize-none leading-relaxed">{{ old('notes') }}</textarea>
                     </div>
                 </div>
 
@@ -460,6 +554,7 @@
     <!-- JavaScript: GPS Location, Leaflet Mini-Map & HTML5 Canvas Image Compression -->
     <script>
         // State
+        let rawPhotoFile = null;
         let compressedPhotoFile = null;
         let isGpsLocked = false;
         let miniMap = null;
@@ -481,12 +576,43 @@
         const statCompressedSize = document.getElementById('statCompressedSize');
         const statSavingsPercent = document.getElementById('statSavingsPercent');
 
-        // Officers Custom Combobox
+        // Officers Custom Combobox & Quick Chips
         const visitorNameInput = document.getElementById('visitor_name');
         const officerDropdownMenu = document.getElementById('officerDropdownMenu');
         const officerChevronIcon = document.getElementById('officerChevronIcon');
         const officerComboboxContainer = document.getElementById('officerComboboxContainer');
         const officerOptions = document.querySelectorAll('.officer-option');
+        const officerAvatarBadge = document.getElementById('officerAvatarBadge');
+        const clearOfficerBtn = document.getElementById('clearOfficerBtn');
+        const quickOfficerChips = document.querySelectorAll('.officer-quick-chip');
+
+        function updateOfficerUI(name) {
+            const trimmed = (name || '').trim();
+            if (trimmed) {
+                if (clearOfficerBtn) clearOfficerBtn.classList.remove('hidden');
+                if (officerAvatarBadge) {
+                    officerAvatarBadge.innerHTML = `<span class="w-full h-full rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 text-white font-extrabold flex items-center justify-center text-xs shadow-2xs">${trimmed.charAt(0).toUpperCase()}</span>`;
+                }
+            } else {
+                if (clearOfficerBtn) clearOfficerBtn.classList.add('hidden');
+                if (officerAvatarBadge) {
+                    officerAvatarBadge.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>`;
+                }
+            }
+
+            // Sync visual active state on quick chips
+            const lowerName = trimmed.toLowerCase();
+            quickOfficerChips.forEach(chip => {
+                const chipOfficer = chip.getAttribute('data-officer');
+                if (chipOfficer && chipOfficer === lowerName) {
+                    chip.classList.add('bg-brand-600', 'text-white', 'ring-2', 'ring-brand-400', 'shadow-xs');
+                    chip.classList.remove('bg-white', 'text-slate-700', 'border-slate-200');
+                } else {
+                    chip.classList.remove('bg-brand-600', 'text-white', 'ring-2', 'ring-brand-400', 'shadow-xs');
+                    chip.classList.add('bg-white', 'text-slate-700', 'border-slate-200');
+                }
+            });
+        }
 
         function toggleOfficerDropdown(forceState) {
             if (!officerDropdownMenu) return;
@@ -529,21 +655,48 @@
             }
         }
 
-        function selectOfficer(name) {
+        function selectOfficer(name, clickedEl) {
             if (visitorNameInput) {
                 visitorNameInput.value = name;
+                updateOfficerUI(name);
             }
             toggleOfficerDropdown(false);
+        }
+
+        function clearOfficerInput() {
+            if (visitorNameInput) {
+                visitorNameInput.value = '';
+                updateOfficerUI('');
+                visitorNameInput.focus();
+            }
+        }
+
+        function appendNote(text) {
             const notesEl = document.getElementById('notes');
-            if (notesEl) notesEl.focus();
+            if (!notesEl) return;
+            const current = notesEl.value.trim();
+            if (!current) {
+                notesEl.value = text;
+            } else if (!current.includes(text)) {
+                notesEl.value = current + ' - ' + text;
+            }
+            const countEl = document.getElementById('charCount');
+            if (countEl) countEl.textContent = notesEl.value.length + '/500';
+            notesEl.focus();
         }
 
         if (visitorNameInput) {
+            // Inisialisasi awal saat halaman dimuat jika old('visitor_name') terisi
+            if (visitorNameInput.value) {
+                updateOfficerUI(visitorNameInput.value);
+            }
+
             visitorNameInput.addEventListener('focus', () => {
                 toggleOfficerDropdown(true);
             });
             visitorNameInput.addEventListener('input', (e) => {
                 filterOfficerOptions(e.target.value);
+                updateOfficerUI(e.target.value);
                 toggleOfficerDropdown(true);
             });
             visitorNameInput.addEventListener('keydown', (e) => {
@@ -792,22 +945,35 @@
 
             // Validate is image
             if (!file.type.startsWith('image/')) {
-                alert('File yang dipilih harus berupa gambar.');
+                alert('File yang dipilih harus berupa gambar (JPG, PNG, WebP).');
                 return;
             }
 
+            rawPhotoFile = file;
+
+            // Tampilkan preview segera dengan FileReader agar instan di browser HP
+            const quickReader = new FileReader();
+            quickReader.onload = (e) => {
+                previewImage.src = e.target.result;
+                dropzoneArea.classList.add('hidden');
+                previewCard.classList.remove('hidden');
+            };
+            quickReader.readAsDataURL(file);
+
             try {
-                // Show loading state
-                dropzoneArea.classList.add('opacity-50', 'pointer-events-none');
-                
-                const compressionResult = await compressImage(file, 1000, 1000, 0.8);
+                // Kompresi gambar di latar belakang
+                const compressionResult = await compressImage(file, 1000, 1000, 0.82);
                 compressedPhotoFile = compressionResult.compressedFile;
 
-                // Sync compressed file into input.files via DataTransfer for standard form submit
+                // Sync compressed file into input.files via DataTransfer jika didukung
                 if (window.DataTransfer) {
-                    const dt = new DataTransfer();
-                    dt.items.add(compressedPhotoFile);
-                    photoInput.files = dt.files;
+                    try {
+                        const dt = new DataTransfer();
+                        dt.items.add(compressedPhotoFile);
+                        photoInput.files = dt.files;
+                    } catch (e) {
+                        // ignore DataTransfer restriction on some mobile webviews
+                    }
                 }
 
                 // Update UI preview
@@ -818,14 +984,9 @@
                     const savings = Math.max(0, Math.round(((compressionResult.originalSize - compressionResult.compressedSize) / compressionResult.originalSize) * 100));
                     statSavingsPercent.textContent = `Hemat ${savings}%`;
                 }
-
-                dropzoneArea.classList.add('hidden');
-                previewCard.classList.remove('hidden');
             } catch (err) {
-                console.error('Image compression error:', err);
-                alert('Gagal mengompresi gambar. Silakan coba lagi.');
-            } finally {
-                dropzoneArea.classList.remove('opacity-50', 'pointer-events-none');
+                console.warn('Canvas compression dilewati, menggunakan file gambar asli:', err);
+                compressedPhotoFile = null;
             }
         }
 
@@ -910,23 +1071,22 @@
 
             // Validate GPS
             if (!latitudeInput.value || !longitudeInput.value) {
-                alert('Titik GPS belum terdeteksi. Silakan klik tombol "Perbarui GPS" atau izinkan browser membaca lokasi Anda.');
+                alert('Titik GPS belum terdeteksi. Silakan klik tombol "Perbarui GPS" atau geser pin pada peta.');
                 fetchCurrentLocation();
                 return;
             }
 
             // Validate photo
-            if (!compressedPhotoFile && (!photoInput.files || !photoInput.files.length)) {
+            const fileToUpload = compressedPhotoFile || rawPhotoFile || (photoInput.files && photoInput.files[0]);
+            if (!fileToUpload) {
                 alert('Silakan ambil foto bukti kunjungan lapangan terlebih dahulu.');
-                document.getElementById('photoInput').click();
                 return;
             }
 
             // Prepare FormData
             const formData = new FormData(visitForm);
-            if (compressedPhotoFile) {
-                formData.set('photo', compressedPhotoFile, compressedPhotoFile.name);
-            }
+            // Pastikan file foto selalu terlampir dengan baik
+            formData.set('photo', fileToUpload, fileToUpload.name || 'foto_lapangan.jpg');
 
             // Disable submit button & show loading state
             setSubmittingState(true);
@@ -941,20 +1101,22 @@
                     body: formData
                 });
 
-                const data = await response.json();
+                const data = await response.json().catch(() => ({}));
 
                 if (response.ok && data.success) {
                     // Show success modal
                     showSuccessModal(data.message);
                 } else {
-                    const errorMsg = data.message || 'Terjadi kesalahan saat menyimpan data.';
+                    let errorMsg = data.message || 'Terjadi kesalahan saat menyimpan data.';
+                    if (data.errors) {
+                        const details = Object.values(data.errors).flat().join('\n• ');
+                        errorMsg += '\n\n• ' + details;
+                    }
                     alert(errorMsg);
                 }
             } catch (error) {
                 console.error('Submission error:', error);
-                // Fallback to normal form submit if fetch fails
-                visitForm.submit();
-                return;
+                alert('Gagal mengirim data. Pastikan koneksi internet stabil dan coba tekan "Simpan Kunjungan Lapangan" lagi.');
             } finally {
                 setSubmittingState(false);
             }
@@ -993,7 +1155,9 @@
                 if (cameraInput) cameraInput.value = '';
                 if (galleryInput) galleryInput.value = '';
                 if (photoInput) photoInput.value = '';
+                rawPhotoFile = null;
                 compressedPhotoFile = null;
+                clearOfficerInput();
                 previewCard.classList.add('hidden');
                 dropzoneArea.classList.remove('hidden');
                 fetchCurrentLocation();
