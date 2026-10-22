@@ -151,7 +151,8 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
-                    <span>+ Input</span>
+                    <span class="hidden sm:inline">Input Kunjungan</span>
+                    <span class="sm:hidden text-[11px]">Input</span>
                 </a>
             </div>
 
@@ -208,7 +209,7 @@
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                         </svg>
-                        + Input Kunjungan Baru
+                        Input Kunjungan Baru
                     </a>
                 </div>
             </div>
@@ -245,58 +246,164 @@
 
         <!-- Filter & Sorting Panel -->
         <div class="p-4 sm:p-5 border-b border-slate-200/80 bg-slate-50/70 space-y-3.5">
-            <!-- Filter Petugas Dropdown -->
-            <div>
-                <label for="officerSelectFilter" class="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1.5 flex items-center justify-between">
+            <!-- Filter Petugas Dropdown (Custom Modern UI, No Native Browser Select) -->
+            <div class="relative" id="officerFilterContainer">
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1.5 flex items-center justify-between">
                     <span class="flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-3.5 h-3.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                         </svg>
                         Filter Petugas
                     </span>
+                    <span id="officerFilterBadge" class="text-[10px] font-semibold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-md border border-brand-200/60">
+                        Semua Petugas
+                    </span>
                 </label>
-                <select id="officerSelectFilter"
-                        onchange="applyAllFilters()"
-                        class="w-full bg-white border border-slate-300 hover:border-slate-400 text-slate-800 text-xs sm:text-sm font-medium rounded-xl px-3.5 py-2.5 shadow-2xs focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer transition">
-                    <option value="">Semua Petugas ({{ $visits->count() }} Kunjungan)</option>
-                    @foreach($officers as $officer)
-                        <option value="{{ strtolower($officer) }}">{{ $officer }}</option>
-                    @endforeach
-                </select>
+
+                <!-- Hidden Input for Engine -->
+                <input type="hidden" id="officerSelectFilter" value="">
+
+                <!-- Custom Trigger Button -->
+                <button type="button"
+                        id="officerFilterBtn"
+                        onclick="toggleOfficerFilterMenu()"
+                        class="w-full bg-white border-2 border-slate-200 hover:border-brand-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 text-slate-800 text-xs sm:text-sm font-semibold rounded-2xl px-3.5 py-2.5 shadow-2xs flex items-center justify-between transition cursor-pointer active:scale-[0.99]">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div id="filterSelectedAvatar" class="w-7 h-7 rounded-xl bg-brand-50 text-brand-600 font-bold flex items-center justify-center text-xs shrink-0 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                        </div>
+                        <span id="filterSelectedName" class="truncate text-slate-800 font-bold">Semua Petugas ({{ $visits->count() }} Kunjungan)</span>
+                    </div>
+                    <svg id="officerFilterChevron" class="w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+
+                <!-- Custom Dropdown Menu Card -->
+                <div id="officerFilterMenu"
+                     class="hidden absolute left-0 right-0 z-40 mt-1.5 bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-150">
+                    <div class="p-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <span>Pilih Petugas Lapangan</span>
+                        <span class="text-[10px] text-slate-400">{{ $officers->count() }} Terdaftar</span>
+                    </div>
+
+                    <div class="max-h-56 overflow-y-auto p-1.5 space-y-1">
+                        <!-- Option: Semua Petugas -->
+                        <div onclick="setOfficerFilter('', 'Semua Petugas ({{ $visits->count() }} Kunjungan)')"
+                             class="officer-filter-item flex items-center justify-between p-2 rounded-xl hover:bg-brand-50/80 cursor-pointer text-xs transition group bg-brand-50/50"
+                             data-val="">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <div class="w-8 h-8 rounded-xl bg-brand-100 text-brand-700 font-bold flex items-center justify-center shrink-0 text-xs">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-slate-800 group-hover:text-brand-700 truncate">Semua Petugas</p>
+                                    <p class="text-[10px] text-slate-400">{{ $visits->count() }} Total Kunjungan</p>
+                                </div>
+                            </div>
+                            <span class="officer-check text-brand-600">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                            </span>
+                        </div>
+
+                        <!-- Options for each officer -->
+                        @foreach($officers as $officer)
+                            @php
+                                $officerVisitCount = $visits->where('visitor_name', $officer)->count();
+                            @endphp
+                            <div onclick="setOfficerFilter('{{ strtolower($officer) }}', '{{ addslashes($officer) }}')"
+                                 class="officer-filter-item flex items-center justify-between p-2 rounded-xl hover:bg-brand-50/80 cursor-pointer text-xs transition group"
+                                 data-val="{{ strtolower($officer) }}">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 text-white font-extrabold flex items-center justify-center shrink-0 text-xs shadow-2xs">
+                                        {{ strtoupper(substr($officer, 0, 1)) }}
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-slate-800 group-hover:text-brand-700 truncate">{{ $officer }}</p>
+                                        <p class="text-[10px] text-slate-400">{{ $officerVisitCount }} Kunjungan Tercatat</p>
+                                    </div>
+                                </div>
+                                <span class="officer-check hidden text-brand-600">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                </span>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
             </div>
 
             <!-- Sort and Time Filters in Grid -->
             <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label for="sortSelectFilter" class="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1.5 flex items-center gap-1">
+                <!-- Custom Urutkan Dropdown -->
+                <div class="relative" id="sortFilterContainer">
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1.5 flex items-center gap-1">
                         <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"/>
                         </svg>
                         Urutkan
                     </label>
-                    <select id="sortSelectFilter"
-                            onchange="applyAllFilters()"
-                            class="w-full bg-white border border-slate-300 hover:border-slate-400 text-slate-800 text-xs sm:text-sm font-medium rounded-xl px-3 py-2.5 shadow-2xs focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer transition">
-                        <option value="latest">Terbaru</option>
-                        <option value="oldest">Terlama</option>
-                        <option value="name_asc">Nama (A &rarr; Z)</option>
-                        <option value="name_desc">Nama (Z &rarr; A)</option>
-                    </select>
+                    <input type="hidden" id="sortSelectFilter" value="latest">
+                    <button type="button"
+                            id="sortFilterBtn"
+                            onclick="toggleSortFilterMenu()"
+                            class="w-full bg-white border border-slate-300 hover:border-slate-400 text-slate-800 text-xs font-semibold rounded-xl px-3 py-2.5 shadow-2xs flex items-center justify-between transition cursor-pointer">
+                        <span id="sortSelectedName" class="truncate">Terbaru</span>
+                        <svg id="sortFilterChevron" class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200 shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <!-- Custom Sort Menu -->
+                    <div id="sortFilterMenu"
+                         class="hidden absolute left-0 right-0 z-40 mt-1 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden divide-y divide-slate-100 text-xs">
+                        <div onclick="setSortFilter('latest', 'Terbaru')" class="sort-opt p-2.5 hover:bg-brand-50 cursor-pointer font-bold text-slate-800 flex items-center justify-between" data-val="latest">
+                            <span>Terbaru</span>
+                            <span class="sort-check text-brand-600">&check;</span>
+                        </div>
+                        <div onclick="setSortFilter('oldest', 'Terlama')" class="sort-opt p-2.5 hover:bg-brand-50 cursor-pointer text-slate-700 flex items-center justify-between" data-val="oldest">
+                            <span>Terlama</span>
+                            <span class="sort-check hidden text-brand-600">&check;</span>
+                        </div>
+                        <div onclick="setSortFilter('name_asc', 'Nama (A &rarr; Z)')" class="sort-opt p-2.5 hover:bg-brand-50 cursor-pointer text-slate-700 flex items-center justify-between" data-val="name_asc">
+                            <span>Nama (A &rarr; Z)</span>
+                            <span class="sort-check hidden text-brand-600">&check;</span>
+                        </div>
+                        <div onclick="setSortFilter('name_desc', 'Nama (Z &rarr; A)')" class="sort-opt p-2.5 hover:bg-brand-50 cursor-pointer text-slate-700 flex items-center justify-between" data-val="name_desc">
+                            <span>Nama (Z &rarr; A)</span>
+                            <span class="sort-check hidden text-brand-600">&check;</span>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Periode Waktu Filter (Segmented Pills Touch-Friendly) -->
                 <div>
-                    <label for="timeSelectFilter" class="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1.5 flex items-center gap-1">
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1.5 flex items-center gap-1">
                         <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                         Periode Waktu
                     </label>
-                    <select id="timeSelectFilter"
-                            onchange="applyAllFilters()"
-                            class="w-full bg-white border border-slate-300 hover:border-slate-400 text-slate-800 text-xs sm:text-sm font-medium rounded-xl px-3 py-2.5 shadow-2xs focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer transition">
-                        <option value="all">Semua Waktu</option>
-                        <option value="today">Hari Ini</option>
-                        <option value="7days">7 Hari Terakhir</option>
-                    </select>
+                    <input type="hidden" id="timeSelectFilter" value="all">
+                    <div class="grid grid-cols-3 gap-1 bg-slate-200/70 p-1 rounded-xl">
+                        <button type="button"
+                                onclick="setTimeFilter('all', this)"
+                                class="time-pill-btn py-1.5 text-[11px] font-bold rounded-lg transition active:scale-95 bg-white text-brand-700 shadow-2xs">
+                            Semua
+                        </button>
+                        <button type="button"
+                                onclick="setTimeFilter('today', this)"
+                                class="time-pill-btn py-1.5 text-[11px] font-semibold text-slate-600 hover:text-slate-900 rounded-lg transition active:scale-95">
+                            Hari Ini
+                        </button>
+                        <button type="button"
+                                onclick="setTimeFilter('7days', this)"
+                                class="time-pill-btn py-1.5 text-[11px] font-semibold text-slate-600 hover:text-slate-900 rounded-lg transition active:scale-95">
+                            7 Hari
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -921,16 +1028,152 @@
             }
         }
 
+        // Custom Filter Dropdowns Management
+        function toggleOfficerFilterMenu(forceState) {
+            const menu = document.getElementById('officerFilterMenu');
+            const chevron = document.getElementById('officerFilterChevron');
+            if (!menu) return;
+            const isClosed = menu.classList.contains('hidden');
+            const shouldOpen = forceState !== undefined ? forceState : isClosed;
+
+            if (shouldOpen) {
+                closeSortFilterMenu();
+                menu.classList.remove('hidden');
+                if (chevron) chevron.classList.add('rotate-180');
+            } else {
+                menu.classList.add('hidden');
+                if (chevron) chevron.classList.remove('rotate-180');
+            }
+        }
+
+        function closeOfficerFilterMenu() {
+            toggleOfficerFilterMenu(false);
+        }
+
+        function setOfficerFilter(val, label) {
+            const hiddenInput = document.getElementById('officerSelectFilter');
+            if (hiddenInput) hiddenInput.value = val;
+
+            const nameEl = document.getElementById('filterSelectedName');
+            if (nameEl) nameEl.textContent = label;
+
+            const badgeEl = document.getElementById('officerFilterBadge');
+            if (badgeEl) {
+                badgeEl.textContent = val ? label : 'Semua Petugas';
+            }
+
+            const avatarEl = document.getElementById('filterSelectedAvatar');
+            if (avatarEl) {
+                if (val) {
+                    avatarEl.innerHTML = `<span class="w-full h-full rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 text-white font-extrabold flex items-center justify-center text-xs shadow-2xs">${label.charAt(0).toUpperCase()}</span>`;
+                } else {
+                    avatarEl.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>`;
+                }
+            }
+
+            // Update check icons and item styles
+            document.querySelectorAll('.officer-filter-item').forEach(item => {
+                const itemVal = item.getAttribute('data-val');
+                const check = item.querySelector('.officer-check');
+                if (itemVal === val) {
+                    item.classList.add('bg-brand-50/70');
+                    if (check) check.classList.remove('hidden');
+                } else {
+                    item.classList.remove('bg-brand-50/70');
+                    if (check) check.classList.add('hidden');
+                }
+            });
+
+            closeOfficerFilterMenu();
+            applyAllFilters();
+        }
+
+        // Sort Filter Functions
+        function toggleSortFilterMenu(forceState) {
+            const menu = document.getElementById('sortFilterMenu');
+            const chevron = document.getElementById('sortFilterChevron');
+            if (!menu) return;
+            const isClosed = menu.classList.contains('hidden');
+            const shouldOpen = forceState !== undefined ? forceState : isClosed;
+
+            if (shouldOpen) {
+                closeOfficerFilterMenu();
+                menu.classList.remove('hidden');
+                if (chevron) chevron.classList.add('rotate-180');
+            } else {
+                menu.classList.add('hidden');
+                if (chevron) chevron.classList.remove('rotate-180');
+            }
+        }
+
+        function closeSortFilterMenu() {
+            toggleSortFilterMenu(false);
+        }
+
+        function setSortFilter(val, label) {
+            const hiddenInput = document.getElementById('sortSelectFilter');
+            if (hiddenInput) hiddenInput.value = val;
+
+            const nameEl = document.getElementById('sortSelectedName');
+            if (nameEl) nameEl.textContent = label;
+
+            document.querySelectorAll('.sort-opt').forEach(opt => {
+                const optVal = opt.getAttribute('data-val');
+                const check = opt.querySelector('.sort-check');
+                if (optVal === val) {
+                    opt.classList.add('font-bold', 'text-slate-800');
+                    opt.classList.remove('text-slate-700');
+                    if (check) check.classList.remove('hidden');
+                } else {
+                    opt.classList.remove('font-bold', 'text-slate-800');
+                    opt.classList.add('text-slate-700');
+                    if (check) check.classList.add('hidden');
+                }
+            });
+
+            closeSortFilterMenu();
+            applyAllFilters();
+        }
+
+        // Time Period Filter (Segmented Pills)
+        function setTimeFilter(val, btnEl) {
+            const hiddenInput = document.getElementById('timeSelectFilter');
+            if (hiddenInput) hiddenInput.value = val;
+
+            document.querySelectorAll('.time-pill-btn').forEach(btn => {
+                btn.classList.remove('bg-white', 'text-brand-700', 'shadow-2xs', 'font-bold');
+                btn.classList.add('text-slate-600', 'font-semibold');
+            });
+
+            const activeBtn = btnEl || document.querySelector(`.time-pill-btn[onclick*="'${val}'"]`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-white', 'text-brand-700', 'shadow-2xs', 'font-bold');
+                activeBtn.classList.remove('text-slate-600', 'font-semibold');
+            }
+
+            applyAllFilters();
+        }
+
+        // Click outside handler for custom dropdowns
+        document.addEventListener('click', (e) => {
+            const officerContainer = document.getElementById('officerFilterContainer');
+            if (officerContainer && !officerContainer.contains(e.target)) {
+                closeOfficerFilterMenu();
+            }
+            const sortContainer = document.getElementById('sortFilterContainer');
+            if (sortContainer && !sortContainer.contains(e.target)) {
+                closeSortFilterMenu();
+            }
+        });
+
         // Reset all filters back to default
         function resetAllFilters() {
-            const officerSelect = document.getElementById('officerSelectFilter');
-            if (officerSelect) officerSelect.value = '';
-
-            const sortSelect = document.getElementById('sortSelectFilter');
-            if (sortSelect) sortSelect.value = 'latest';
-
-            const timeSelect = document.getElementById('timeSelectFilter');
-            if (timeSelect) timeSelect.value = 'all';
+            setOfficerFilter('', 'Semua Petugas ({{ $visits->count() }} Kunjungan)');
+            setSortFilter('latest', 'Terbaru');
+            
+            const firstTimeBtn = document.querySelector('.time-pill-btn');
+            if (firstTimeBtn) setTimeFilter('all', firstTimeBtn);
+            else setTimeFilter('all');
 
             const sidebarSearch = document.getElementById('sidebarSearchInput');
             if (sidebarSearch) sidebarSearch.value = '';

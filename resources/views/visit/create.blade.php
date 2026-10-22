@@ -153,32 +153,6 @@
                         </span>
                     </div>
 
-                    <!-- Quick Pick Chips for Mobile (Sentuh Sekali untuk Memilih) -->
-                    <div class="mb-2.5">
-                        <div class="flex items-center justify-between mb-1.5">
-                            <span class="text-[11px] font-semibold text-slate-500 flex items-center gap-1">
-                                <svg class="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                                </svg>
-                                <span>Pilih Cepat Petugas:</span>
-                            </span>
-                            <span class="text-[10px] text-slate-400">Ketuk untuk memilih</span>
-                        </div>
-                        <div class="flex flex-wrap gap-1.5" id="quickOfficerChips">
-                            @foreach($allOfficers as $officer)
-                                <button type="button"
-                                        onclick="selectOfficer('{{ addslashes($officer) }}', this)"
-                                        class="officer-quick-chip group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white hover:bg-brand-50 text-slate-700 hover:text-brand-700 border border-slate-200 hover:border-brand-300 shadow-2xs transition-all duration-150 active:scale-95 cursor-pointer"
-                                        data-officer="{{ strtolower($officer) }}">
-                                    <span class="w-5 h-5 rounded-lg bg-gradient-to-tr from-brand-600 to-indigo-500 text-white font-bold text-[10px] flex items-center justify-center shadow-2xs group-hover:scale-105 transition">
-                                        {{ strtoupper(substr($officer, 0, 1)) }}
-                                    </span>
-                                    <span class="chip-name">{{ $officer }}</span>
-                                </button>
-                            @endforeach
-                        </div>
-                    </div>
-
                     <!-- Custom Styled Modern Input Container -->
                     <div class="relative" id="officerComboboxContainer">
                         <div class="relative flex items-center bg-white rounded-2xl border-2 border-slate-200 hover:border-brand-300 focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-brand-500/10 transition duration-200 shadow-2xs overflow-hidden">
@@ -584,7 +558,6 @@
         const officerOptions = document.querySelectorAll('.officer-option');
         const officerAvatarBadge = document.getElementById('officerAvatarBadge');
         const clearOfficerBtn = document.getElementById('clearOfficerBtn');
-        const quickOfficerChips = document.querySelectorAll('.officer-quick-chip');
 
         function updateOfficerUI(name) {
             const trimmed = (name || '').trim();
@@ -599,19 +572,6 @@
                     officerAvatarBadge.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>`;
                 }
             }
-
-            // Sync visual active state on quick chips
-            const lowerName = trimmed.toLowerCase();
-            quickOfficerChips.forEach(chip => {
-                const chipOfficer = chip.getAttribute('data-officer');
-                if (chipOfficer && chipOfficer === lowerName) {
-                    chip.classList.add('bg-brand-600', 'text-white', 'ring-2', 'ring-brand-400', 'shadow-xs');
-                    chip.classList.remove('bg-white', 'text-slate-700', 'border-slate-200');
-                } else {
-                    chip.classList.remove('bg-brand-600', 'text-white', 'ring-2', 'ring-brand-400', 'shadow-xs');
-                    chip.classList.add('bg-white', 'text-slate-700', 'border-slate-200');
-                }
-            });
         }
 
         function toggleOfficerDropdown(forceState) {
