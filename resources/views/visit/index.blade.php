@@ -43,11 +43,13 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
+            touch-action: manipulation;
         }
 
         #map {
             width: 100vw;
             height: 100vh;
+            height: 100dvh;
             z-index: 1;
         }
 
@@ -69,15 +71,16 @@
         /* Leaflet Popup Customization */
         .leaflet-popup-content-wrapper {
             padding: 0 !important;
-            border-radius: 1rem !important;
+            border-radius: 1.25rem !important;
             overflow: hidden !important;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
             border: 1px solid rgba(226, 232, 240, 0.8) !important;
         }
         .leaflet-popup-content {
             margin: 0 !important;
             line-height: normal !important;
-            width: 290px !important;
+            width: 280px !important;
+            max-width: calc(100vw - 32px) !important;
         }
         .leaflet-popup-tip-container {
             margin-top: -1px;
@@ -88,8 +91,8 @@
             color: #ffffff !important;
             background: rgba(15, 23, 42, 0.6) !important;
             border-radius: 9999px !important;
-            width: 26px !important;
-            height: 26px !important;
+            width: 28px !important;
+            height: 28px !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
@@ -104,63 +107,64 @@
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased">
 
-    <!-- Top Floating Header Bar -->
-    <header class="fixed top-4 left-4 right-4 z-20 pointer-events-none">
-        <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
+    <!-- Top Floating Header Bar (Optimized for Android & Desktop) -->
+    <header class="fixed top-2.5 sm:top-4 left-2.5 sm:left-4 right-2.5 sm:right-4 z-20 pointer-events-none">
+        <div class="max-w-6xl mx-auto flex items-center justify-between gap-2">
             
             <!-- App Brand & Stats Pill -->
-            <div class="pointer-events-auto bg-white/95 backdrop-blur-md rounded-2xl shadow-lg border border-slate-200/80 px-4 py-2.5 flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 text-white flex items-center justify-center shadow-md shadow-brand-500/20">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="pointer-events-auto bg-white/95 backdrop-blur-md rounded-2xl shadow-lg border border-slate-200/80 px-2.5 sm:px-4 py-2 sm:py-2.5 flex items-center gap-2 sm:gap-3 min-w-0">
+                <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 text-white flex items-center justify-center shadow-md shadow-brand-500/20 shrink-0">
+                    <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                     </svg>
                 </div>
-                <div>
-                    <div class="flex items-center gap-2">
-                        <h1 class="text-sm font-bold text-slate-900 leading-none">Field Visit Mapping</h1>
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                <div class="min-w-0">
+                    <div class="flex items-center gap-1.5">
+                        <h1 class="text-xs sm:text-sm font-bold text-slate-900 leading-none truncate">Field Visit</h1>
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                             Live
                         </span>
                     </div>
-                    <p class="text-xs text-slate-500 mt-1">
-                        Total: <span id="visitCountBadge" class="font-bold text-brand-600">{{ $visits->count() }}</span> Titik Kunjungan
+                    <p class="text-[10px] sm:text-xs text-slate-500 mt-0.5 truncate">
+                        <span id="visitCountBadge" class="font-bold text-brand-600">{{ $visits->count() }}</span> Titik
                     </p>
                 </div>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="pointer-events-auto flex items-center gap-2.5">
+            <!-- Action Buttons (Single Row, Android Thumb-Friendly) -->
+            <div class="pointer-events-auto flex items-center gap-1.5 sm:gap-2.5 shrink-0">
                 <!-- Toggle Sidebar List Button -->
                 <button type="button"
                         onclick="toggleSidebar()"
-                        class="bg-white/95 backdrop-blur-md hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-2xl border border-slate-200/80 shadow-lg text-xs font-bold transition flex items-center gap-2 cursor-pointer active:scale-95">
+                        class="bg-white/95 backdrop-blur-md hover:bg-slate-50 text-slate-700 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl border border-slate-200/80 shadow-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-95">
                     <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
                     </svg>
-                    <span>Daftar Kunjungan</span>
+                    <span class="hidden sm:inline">Daftar Kunjungan</span>
+                    <span class="sm:hidden text-[11px]">Daftar</span>
                 </button>
 
                 <!-- Create Visit Button -->
                 <a href="{{ route('visits.create') }}"
-                   class="bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 active:scale-95 text-white px-4 py-2.5 rounded-2xl shadow-lg shadow-brand-500/25 text-xs font-bold transition flex items-center gap-2">
+                   class="bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 active:scale-95 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl shadow-lg shadow-brand-500/25 text-xs font-bold transition flex items-center gap-1.5 shrink-0">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
-                    <span>Input Kunjungan</span>
+                    <span>+ Input</span>
                 </a>
             </div>
 
         </div>
     </header>
 
-    <!-- Floating Map Control Buttons (Bottom Right) -->
-    <div class="fixed bottom-6 right-6 z-20 flex flex-col gap-2.5">
+    <!-- Floating Map Control Buttons (Bottom Right, Safe on Mobile) -->
+    <div class="fixed bottom-4 sm:bottom-6 right-3 sm:right-6 z-20 flex flex-col gap-2">
         <!-- Fokus Seluruh Indonesia -->
         <button type="button"
                 onclick="fitIndonesia()"
                 title="Fokus Seluruh Indonesia (NKRI)"
-                class="w-11 h-11 bg-white hover:bg-slate-50 text-slate-700 rounded-2xl shadow-lg border border-slate-200 flex items-center justify-center transition active:scale-95 cursor-pointer group">
+                class="w-10 h-10 sm:w-11 sm:h-11 bg-white/95 backdrop-blur-md hover:bg-slate-50 text-slate-700 rounded-2xl shadow-lg border border-slate-200/80 flex items-center justify-center transition active:scale-95 cursor-pointer group">
             <span class="text-xs font-black text-brand-600 group-hover:scale-110 transition tracking-tighter">IDN</span>
         </button>
 
@@ -168,8 +172,8 @@
         <button type="button"
                 onclick="fitAllMarkers()"
                 title="Fokus Semua Kunjungan"
-                class="w-11 h-11 bg-white hover:bg-slate-50 text-slate-700 rounded-2xl shadow-lg border border-slate-200 flex items-center justify-center transition active:scale-95 cursor-pointer group">
-            <svg class="w-5 h-5 text-slate-600 group-hover:text-brand-600 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                class="w-10 h-10 sm:w-11 sm:h-11 bg-white/95 backdrop-blur-md hover:bg-slate-50 text-slate-700 rounded-2xl shadow-lg border border-slate-200/80 flex items-center justify-center transition active:scale-95 cursor-pointer group">
+            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 group-hover:text-brand-600 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
             </svg>
         </button>
@@ -179,8 +183,8 @@
                 id="myLocationBtn"
                 onclick="goToUserLocation()"
                 title="Lokasi Saya Saat Ini"
-                class="w-11 h-11 bg-white hover:bg-slate-50 text-slate-700 rounded-2xl shadow-lg border border-slate-200 flex items-center justify-center transition active:scale-95 cursor-pointer group">
-            <svg id="locationIcon" class="w-5 h-5 text-slate-600 group-hover:text-brand-600 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                class="w-10 h-10 sm:w-11 sm:h-11 bg-white/95 backdrop-blur-md hover:bg-slate-50 text-slate-700 rounded-2xl shadow-lg border border-slate-200/80 flex items-center justify-center transition active:scale-95 cursor-pointer group">
+            <svg id="locationIcon" class="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 group-hover:text-brand-600 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0013 3.06V1h-2v2.06A8.994 8.994 0 003.06 11H1v2h2.06A8.994 8.994 0 0011 20.94V23h2v-2.06A8.994 8.994 0 0020.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
             </svg>
         </button>
@@ -519,14 +523,15 @@
         function generatePopupContent(visit) {
             const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${visit.latitude},${visit.longitude}`;
             const formattedDate = formatVisitDate(visit.created_at);
+            const photoHeight = window.innerWidth < 640 ? 140 : 180;
 
             return `
                 <div class="text-slate-800">
-                    <!-- Photo Header (Fixed 180px height so portrait & landscape look identical) -->
-                    <div class="relative bg-slate-900 cursor-pointer overflow-hidden group w-full" style="height: 180px; max-height: 180px;" onclick="openLightbox('${visit.photo_url}')">
+                    <!-- Photo Header (Responsive height on mobile) -->
+                    <div class="relative bg-slate-900 cursor-pointer overflow-hidden group w-full" style="height: ${photoHeight}px; max-height: ${photoHeight}px;" onclick="openLightbox('${visit.photo_url}')">
                         <img src="${visit.photo_url}"
                              alt="${escapeHtml(visit.visitor_name)}"
-                             style="width: 100%; height: 180px; object-fit: cover;"
+                             style="width: 100%; height: ${photoHeight}px; object-fit: cover;"
                              class="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                              onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80'"/>
                         <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>

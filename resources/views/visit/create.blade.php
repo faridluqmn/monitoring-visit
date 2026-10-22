@@ -227,47 +227,72 @@
                         Foto Bukti Lapangan <span class="text-rose-500">*</span>
                     </label>
 
-                    <!-- Hidden native file input with capture="user" -->
-                    <input type="file"
-                           name="photo"
-                           id="photoInput"
-                           accept="image/*"
-                           capture="user"
-                           class="hidden"
-                           required>
+                    <!-- Native hidden file inputs -->
+                    <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden">
+                    <input type="file" id="galleryInput" accept="image/*" class="hidden">
+                    <input type="file" name="photo" id="photoInput" accept="image/*" class="hidden" required>
 
-                    <!-- Custom Camera Upload Dropzone / Button -->
+                    <!-- Custom Camera Upload Dropzone / Button for Android & Mobile -->
                     <div id="dropzoneArea"
-                         onclick="document.getElementById('photoInput').click()"
-                         class="cursor-pointer border-2 border-dashed border-slate-300 hover:border-brand-500 bg-slate-50/70 hover:bg-brand-50/30 rounded-2xl p-6 text-center transition flex flex-col items-center justify-center group">
+                         class="border-2 border-dashed border-slate-300 hover:border-brand-500 bg-slate-50/70 hover:bg-brand-50/30 rounded-2xl p-4 sm:p-6 text-center transition flex flex-col items-center justify-center">
                         
-                        <div class="w-14 h-14 rounded-full bg-white shadow-xs border border-slate-200 flex items-center justify-center text-brand-600 group-hover:scale-105 group-hover:bg-brand-600 group-hover:text-white transition duration-200 mb-3">
-                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white shadow-xs border border-slate-200 flex items-center justify-center text-brand-600 mb-2.5">
+                            <svg class="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
                             </svg>
                         </div>
 
                         <p class="text-sm font-bold text-slate-800">
-                            Ambil Swafoto / Pilih Foto
+                            Foto Bukti Lapangan
                         </p>
-                        <p class="text-xs text-slate-500 mt-1 max-w-xs">
-                            Ketuk untuk membuka kamera atau memilih foto dari galeri perangkat Anda.
+                        <p class="text-xs text-slate-500 mt-0.5 max-w-xs mb-3.5">
+                            Ambil langsung lewat kamera HP atau pilih file foto dari galeri.
                         </p>
+
+                        <!-- Action Buttons for Android & Touch Devices -->
+                        <div class="grid grid-cols-2 gap-2.5 w-full max-w-xs">
+                            <button type="button"
+                                    onclick="document.getElementById('cameraInput').click()"
+                                    class="py-2.5 px-3 bg-brand-600 hover:bg-brand-700 active:scale-95 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                </svg>
+                                <span>Kamera</span>
+                            </button>
+                            <button type="button"
+                                    onclick="document.getElementById('galleryInput').click()"
+                                    class="py-2.5 px-3 bg-white hover:bg-slate-100 active:scale-95 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer">
+                                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <span>Galeri HP</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Image Preview Box (Clean & Professional) -->
-                    <div id="previewCard" class="hidden mt-3 bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-3">
+                    <div id="previewCard" class="hidden mt-3 bg-slate-50 border border-slate-200 rounded-2xl p-3 sm:p-3.5 space-y-3">
                         <div class="relative rounded-xl overflow-hidden bg-black/5 aspect-4/3 flex items-center justify-center border border-slate-200">
                             <img id="previewImage" src="" alt="Preview Foto Lapangan" class="w-full h-full object-cover">
-                            <button type="button"
-                                    onclick="document.getElementById('photoInput').click()"
-                                    class="absolute bottom-2.5 right-2.5 bg-slate-900/85 hover:bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl backdrop-blur-sm shadow flex items-center gap-1.5 transition">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                </svg>
-                                Ganti Foto
-                            </button>
+                            <div class="absolute bottom-2.5 right-2.5 flex items-center gap-1.5">
+                                <button type="button"
+                                        onclick="document.getElementById('cameraInput').click()"
+                                        class="bg-slate-900/85 hover:bg-slate-900 text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-xl backdrop-blur-sm shadow flex items-center gap-1 transition">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                    </svg>
+                                    Foto Ulang
+                                </button>
+                                <button type="button"
+                                        onclick="document.getElementById('galleryInput').click()"
+                                        class="bg-slate-900/85 hover:bg-slate-900 text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-xl backdrop-blur-sm shadow flex items-center gap-1 transition">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    Galeri
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -697,8 +722,8 @@
 
             const options = {
                 enableHighAccuracy: true,
-                timeout: 15000,
-                maximumAge: 0
+                timeout: 10000,
+                maximumAge: 30000
             };
 
             navigator.geolocation.getCurrentPosition(
@@ -762,8 +787,7 @@
         });
 
         // 2. Client-Side Image Compression with HTML5 Canvas (max 1000px, quality 0.8)
-        photoInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
+        async function handlePhotoFile(file) {
             if (!file) return;
 
             // Validate is image
@@ -803,7 +827,20 @@
             } finally {
                 dropzoneArea.classList.remove('opacity-50', 'pointer-events-none');
             }
-        });
+        }
+
+        const cameraInput = document.getElementById('cameraInput');
+        const galleryInput = document.getElementById('galleryInput');
+
+        if (cameraInput) {
+            cameraInput.addEventListener('change', (e) => handlePhotoFile(e.target.files[0]));
+        }
+        if (galleryInput) {
+            galleryInput.addEventListener('change', (e) => handlePhotoFile(e.target.files[0]));
+        }
+        if (photoInput) {
+            photoInput.addEventListener('change', (e) => handlePhotoFile(e.target.files[0]));
+        }
 
         function compressImage(file, maxWidth = 1000, maxHeight = 1000, quality = 0.8) {
             return new Promise((resolve, reject) => {
@@ -953,6 +990,9 @@
             setTimeout(() => {
                 successModal.classList.add('hidden');
                 visitForm.reset();
+                if (cameraInput) cameraInput.value = '';
+                if (galleryInput) galleryInput.value = '';
+                if (photoInput) photoInput.value = '';
                 compressedPhotoFile = null;
                 previewCard.classList.add('hidden');
                 dropzoneArea.classList.remove('hidden');
